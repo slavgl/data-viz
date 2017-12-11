@@ -115,10 +115,14 @@ var qData = {text: 'According to 2017 count, there are 3,605 homeless people acr
 var aData = {text: 'About half of the homeless who participated in the anonymous survey identified high rents and lack of income as the main barriers to housing. Addiction and mental illness were also factors, with 82 per cent of people dealing with at least one health condition.'};
 var aVal = 38;
 
-qBoxHeightOpt = (d3.round(qData.text.length/45)) * 22;
-aBoxHeightOpt = (d3.round(aData.text.length/45)) * 22;
+var input = {qTxt: 'According to 2017 count, there are 3,605 homeless people across Metro Vancouver. What proportion of them are homeless for the first time?',
+			 aTxt:'About half of the homeless who participated in the anonymous survey identified high rents and lack of income as the main barriers to housing. Addiction and mental illness were also factors, with 82 per cent of people dealing with at least one health condition.',
+			 aVal: 38};
+			
+qBoxHeightOpt = (d3.round(input.qTxt.length/45)) * 22;
+aBoxHeightOpt = (d3.round(input.aTxt.length/45)) * 22;
 heightHist = 60;
-svgHeightOpt = qBoxHeightOpt + 150;
+svgHeightOpt = qBoxHeightOpt + 160;
 
 d3.select("body").append("svg")
 	.attr("width", 400)
@@ -143,7 +147,7 @@ svg.append("text")
 	.attr("class", "qTxt")
 	.attr("x", 32)	
 	
-d3.select('#qWrap').text(function() {return qData.text;})
+d3.select('#qWrap').text(function() {return input.qTxt;})
 d3plus.textwrap().container("#qWrap").draw();	
 	
 var hueActual = 0,
@@ -217,7 +221,7 @@ bRect.on('click', function() {
   
   handleMode = 'static';
   
-  aValPos  = aVal * width/100;
+  aValPos  = input.aVal * width/100;
   
   var actualBall = slider.insert("circle")
     .attr("transform", "translate(" + aValPos + ", 0)")
@@ -249,7 +253,7 @@ bRect.on('click', function() {
 	.attr("class", "aTxt")
 	.attr("x", 32);
 	
-  d3.select("#aWrap").text(function() {return aData.text;});
+  d3.select("#aWrap").text(function() {return input.aTxt;});
   d3plus.textwrap().container("#aWrap").draw();		
 	
   showHist(); 
