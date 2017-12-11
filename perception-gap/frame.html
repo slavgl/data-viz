@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-<!-- saved from url=(0041)https://bl.ocks.org/mbostock/raw/6499018/ -->
 <html>
 <head>
 
@@ -11,10 +10,6 @@
 
 <style>
  
-.ticks {
-  font: 10px sans-serif;
-}
-
 .track,
 .track-inset,
 .track-overlay {
@@ -46,7 +41,7 @@
 }
 
 .actual {
-  fill: #68b82a;
+  fill: #D33C5B;
   stroke: #000;
   stroke-opacity: 0.5;
   stroke-width: 1.00px;
@@ -60,7 +55,7 @@
   shape-rendering: crispEdges;
 }
 
-.qTxt {
+.txtQue {
     font: 15px sans-serif;	
 }
 
@@ -72,12 +67,8 @@
   shape-rendering: crispEdges;
 }
 
-.aTxt {
+.txtAft {
     font: 15px sans-serif;	
-}
-
-.bShape {
-  fill: #68b82a;	
 }
 
 .bTxt {
@@ -85,7 +76,7 @@
 	pointer-events: none;
 }
 
-.ballTxt {
+.labelTxt {
     font: 12px sans-serif;
 	pointer-events: none;
     paint-order: stroke;
@@ -98,7 +89,7 @@
 .bar rect {
   shape-rendering: crispEdges;
     stroke: #000;
-	stroke-opacity: 0.2;
+	stroke-opacity: 0.15;
 }
 
 .axis path, .axis line {
@@ -108,21 +99,47 @@
 </style>
 </head>
 <body>
-
 <script>
-
-var qData = {text: 'According to 2017 count, there are 3,605 homeless people across Metro Vancouver. What proportion of them are homeless for the first time?'};	
-var aData = {text: 'About half of the homeless who participated in the anonymous survey identified high rents and lack of income as the main barriers to housing. Addiction and mental illness were also factors, with 82 per cent of people dealing with at least one health condition.'};
-var aVal = 38;
-
-var input = {qTxt: 'According to 2017 count, there are 3,605 homeless people across Metro Vancouver. What proportion of them are homeless for the first time?',
-			 aTxt:'About half of the homeless who participated in the anonymous survey identified high rents and lack of income as the main barriers to housing. Addiction and mental illness were also factors, with 82 per cent of people dealing with at least one health condition.',
-			 aVal: 38};
+/* input for the applet includes:
+	- txtQue: text for the question box
+	- txtAft: text for the answer box
+	- valRng: range of values for the metric
+	- valAct: actual value of the metric
+	- rwsQue: # of rows txtQue (optional)
+	- rwsAft: # of rows txtAft (optional)
+	- data:   survey entries
+*/
+var input = {
+	txtQue: 'According to 2017 count, there are 3,605 homeless people across Metro Vancouver. ' +
+			'What proportion of them are dealing with at least 1 health condition?',
+	txtAft: 'About half of the homeless who participated in the anonymous survey identified high ' +
+			'rents and lack of income as the main barriers to housing. Addiction and mental illness ' +
+			'were also factors, with 82 per cent of people dealing with at least one health condition.',
+	valRng: [0, 100],
+	valAct: 82,
+	rwsQue: 4, // '' for auto-calculation
+	rwsAft: 5, // '' for auto-calculation
+	data:	[50, 52, 56, 60, 62, 45, 55, 50, 52, 51, 57, 67, 80, 83, 76, 75, 81, 65, 64, 63,
+			 45, 5, 10, 15, 22, 15, 20 ,40, 30, 92, 95, 100]
+			};
 			
-qBoxHeightOpt = (d3.round(input.qTxt.length/45)) * 22;
-aBoxHeightOpt = (d3.round(input.aTxt.length/45)) * 22;
+/* handleMode controls the behavior of slider: 
+'dynamic' allows movement, 'static' freezes the slider */		
+var handleMode  = 'dynamic';	
+			
+// identify optimal question box height			
+if (input.rwsQue == '') {qBoxHeightOpt = (d3.round(input.txtQue.length/45)) * 22;} 
+else {qBoxHeightOpt = input.rwsQue * 23;}
+
+// identify optimal answer box height	
+if (input.rwsAft == '') {aBoxHeightOpt = (d3.round(input.txtAft.length/45)) * 22;}
+else {aBoxHeightOpt = input.rwsAft * 23;}
+
+// define histogram height
 heightHist = 60;
-svgHeightOpt = qBoxHeightOpt + 160;
+
+// calculate optimal svg container height
+svgHeightOpt = qBoxHeightOpt + heightHist + 100;
 
 d3.select("body").append("svg")
 	.attr("width", 400)
@@ -133,7 +150,8 @@ var svg = d3.select("svg"),
     margin = {right: 25, left: 25},
     width = +svg.attr("width") - margin.left - margin.right,
     height = +svg.attr("height");
-
+	
+// add question box container
 svg.append("rect")
 	.attr("id", "qRect")
 	.attr("class", "qBox")
@@ -141,31 +159,34 @@ svg.append("rect")
 	.attr("y", 25)
 	.attr("width", 350)
 	.attr("height", qBoxHeightOpt)
-	
+
+// add question box	text
 svg.append("text")
 	.attr("id", "qWrap")
-	.attr("class", "qTxt")
+	.attr("class", "txtQue")
 	.attr("x", 32)	
-	
-d3.select('#qWrap').text(function() {return input.qTxt;})
-d3plus.textwrap().container("#qWrap").draw();	
-	
-var hueActual = 0,
-    hueTarget = 50,
-    hueAlpha = 0.2,
-    hueTimer = d3.timer(hueTween);
 
-var x = d3.scaleLinear()
-    .domain([0, 100])
-    .range([0, width])
-    .clamp(true);
-	
+// plug text into the question box + wrap	
+d3.select('#qWrap').text(function() {return input.txtQue;})
+d3plus.textwrap().container("#qWrap").draw();	
+
+// add slider container
 var slider = svg.append("g")
     .attr("class", "slider")
     .attr("transform", "translate(" + margin.left + "," + (height - 50) + ")");	
-
-handleMode  = 'dynamic';
 	
+var mtrActual = 0,
+    mtrTarget = 50,
+    mtrAlpha = 0.2,
+    mtrTimer = d3.timer(mtrTweak);	
+
+//set up scale for the slider	
+var x = d3.scaleLinear()
+    .domain([input.valRng[0], input.valRng[1]])
+    .range([0, width])
+    .clamp(true);
+
+// set up slider functionality	
 slider.append("line")
     .attr("class", "track")
     .attr("x1", x.range()[0]) 
@@ -176,64 +197,105 @@ slider.append("line")
     .attr("class", "track-overlay")
     .call(d3.drag()
     .on("start.interrupt", function() { slider.interrupt(); })
-    .on("start drag", function() {  if (handleMode != 'static') { hue(x.invert(d3.event.x)); }}));
-	
-/*
-slider.insert("g", ".track-overlay")
-    .attr("class", "ticks")
-    .attr("transform", "translate(0," + (-20) + ")")
-  .selectAll("text")
-  .data(x.ticks(1))
-  .enter().append("text")
-    .attr("x", x)
-    .attr("text-anchor", "middle")
-    .text(function(d) { return d; });
-*/
+    .on("start drag", function() {  if (handleMode != 'static') { mtr(x.invert(d3.event.x)); }}));
 
 var handle = slider.insert("circle", ".track-overlay")
     .attr("class", "handle")
     .attr("r", 12);
-	
+
+var handleArrowR = slider.insert("path", ".track-overlay")
+		.attr("d", "M0,-5L6,0L0,5")
+		.attr("fill", "#2378ae");
+var handleArrowL = slider.insert("path", ".track-overlay")
+		.attr("d", "M0,-5L-6,0L0,5")
+		.attr("fill", "#2378ae");
+
+// add label to the slider	
 var handleTxt = slider.append('text')
-    .attr("class", "ballTxt")
+    .attr("class", "labelTxt")
 	.style("fill", "#2378ae")
 	.attr("transform", "translate(5, 30)");
 	
-var bShape = svg.append("g");
-	
-var bRect = bShape.append("circle")
-	.attr("transform", "translate(" + (width + margin.right - 10) + ", " + (25 + qBoxHeightOpt + 20) + ")")
+// add 'show actual value' button
+var bRect = svg.append("circle")
+	.attr("transform", "translate(" + (margin.left + width - 10) + ", " + (25 + qBoxHeightOpt + 15) + ")")
     .attr("class", "actual")
 	.attr("r", 10)
 	.attr("opacity", 1);
-
-var bText = bShape.append("text")
+// add legend for actual value button
+var legendActual = svg.append("text")
 	.attr("class", "bTxt")
-	.attr("x", (width - 97))
-	.attr("y", (qBoxHeightOpt + 30 + 20))
+	.attr("x", (220))
+	.attr("y", (qBoxHeightOpt + 30 + 15))
 	.attr("opacity", 1)
-	.text("actual value | click");
+	.text("show actual value | click");
+
+	
+var lineData = [ { "x": 5,   "y": 10}, { "x": 0,   "y": 10},  { "x": 0,  "y": 15},
+                  { "x": 5,  "y": 15}, { "x": 5,  "y": 0},
+                  { "x": 10,  "y": 0},  { "x": 10, "y": 15},
+				  { "x": 5,  "y": 15},  { "x": 15, "y": 15},
+				  { "x": 15,  "y": 5}, { "x": 10,  "y": 5}];
+ 
+ var lineFunction = d3.svg.line()
+                          .x(function(d) { return d.x; })
+                          .y(function(d) { return d.y; })
+                         .interpolate("linear");
 	
 bRect.on('click', function() {
 
   bRect.remove();
-  bText.remove();
+  legendActual.remove();
+  handleArrowL.remove();
+  handleArrowR.remove();
   
   handleMode = 'static';
   
-  aValPos  = input.aVal * width/100;
+  valActPos  = input.valAct * width/(input.valRng[1] - input.valRng[0]);
   
   var actualBall = slider.insert("circle")
-    .attr("transform", "translate(" + aValPos + ", 0)")
+    .attr("transform", "translate(" + valActPos + ", 0)")
 	.attr("class", "actual")
 	.attr("r", 12)
   
+  // label: actual value
   slider.append("text")
-    .attr("class", "ballTxt")
-	.style("fill", "#68b82a")
-	.attr("transform", "translate(" + (aValPos - 7) + ", -25)")
-	.text(38)
+    .attr("class", "labelTxt")
+	.style("fill", "#D33C5B")
+	.attr("transform", "translate(" + (valActPos - 7) + ", -25)")
+	.text(input.valAct)
+  
+  // legend: actual value
+  slider.append("text")
+    .attr("class", "labelTxt")
+	.style("fill", "#D33C5B")
+	.attr("transform", "translate(" + (valActPos - 35) + ", -40)")
+	.text("Actual figure")
+  
+  // legend: your guess
+  svg.append('text')
+    .attr("class", "labelTxt")
+	.style("fill", "#2378ae")
+	.attr("transform", "translate(" + (x(mtrActual) - 5) + ", " + (height - 5) + ")")
+	.text("Your guess"); 
 	
+  // legend: people guess
+  svg.append('text')
+    .attr("class", "labelTxt")
+	.style("fill", "#313131")
+	.style("opacity", 0.7)
+	.attr("transform", "translate(" + (margin.left + 25) + ", " + (35 + qBoxHeightOpt + 15) + ")")
+	.html("People's guess"); 
+	
+  // legened: miniHist	
+  var miniHist = svg.insert("path")
+		.attr("transform", "translate(" + (margin.left + 5) + ", " + (25 + qBoxHeightOpt + 12) + ")")
+		.attr("d", lineFunction(lineData))
+		.attr("fill", "none")
+		.attr("stroke", "gray")
+		.attr("opacity", 1)
+		.attr("shape-rendering", "crispEdges");	
+
   var svgA = d3.select("body").append("svg")
     .attr("transform", "translate(-" + (width + 50 + 4) + ", " + (aBoxHeightOpt + 50) + ")")
 	.attr("width", 400)
@@ -244,81 +306,83 @@ bRect.on('click', function() {
 	.attr("id", "aRect")
 	.attr("class", "aBox")
 	.attr("x", 25)
-	.attr("y", 25)
+	.attr("y", 5)
 	.attr("width", 350)
 	.attr("height", aBoxHeightOpt);
 	
   svgA.append("text")
 	.attr("id", "aWrap")
-	.attr("class", "aTxt")
+	.attr("class", "txtAft")
 	.attr("x", 32);
 	
-  d3.select("#aWrap").text(function() {return input.aTxt;});
+  d3.select("#aWrap").text(function() {return input.txtAft;});
   d3plus.textwrap().container("#aWrap").draw();		
 	
   showHist(); 
   
   slider.moveToFront();
-	
+ 
+// append survey data with the current guess	
+  valGuess = x(mtrActual)/width*100
+  console.log(valGuess);
 });		
 
+// function that moves 'this' element forward
 d3.selection.prototype.moveToFront = function() {
-  return this.each(function(){
-  this.parentNode.appendChild(this);
-  });
+  return this.each(function(){this.parentNode.appendChild(this);});
 };
 
+// function that creates a histogram above the slider, based on survey data
 function showHist() {
 
-var values = d3.range(1000).map(d3.random.normal(5, 5));
+	var values = input.data;
 
-var max = d3.max(values);
-var min = d3.min(values);
+	var x = d3.scale.linear()
+		  .domain([input.valRng[0], input.valRng[1]])
+		  .range([0, width]);
 
-var x = d3.scale.linear()
-      .domain([min, max])
-      .range([0, width]);
+	var data = d3.layout.histogram()
+		.bins(x.ticks(20))(values);
 
-var data = d3.layout.histogram()
-    .bins(x.ticks(20))(values);
+	var yMax = d3.max(data, function(d){return d.length});
+	var yMin = d3.min(data, function(d){return d.length});
 
-var yMax = d3.max(data, function(d){return d.length});
-var yMin = d3.min(data, function(d){return d.length});
+	var y = d3.scale.linear()
+		.domain([0, yMax])
+		.range([heightHist , 0]);
 
-var y = d3.scale.linear()
-    .domain([0, yMax])
-    .range([heightHist , 0]);
-
-var bar = svg.selectAll(".bar")
-    .data(data)
-    .enter().append("g")
-    .attr("class", "bar")
-    .attr("transform", function(d) { return "translate(" + (x(d.x) + margin.left) + "," + (y(d.y) + height - heightHist - 50) + ")"; });
-	
-bar.append("rect")
-    .attr("x", 1)
-    .attr("width", (x(data[0].dx) - x(0)) - 3)
-    .attr("height", function(d) { return heightHist  - y(d.y);})
-    .attr("fill", "rgb(255, 255, 255)");
-}
-	
-function hue(h) {
-  hueTarget = h;
-  hueTimer.restart(hueTween);
+	var bar = svg.selectAll(".bar")
+		.data(data)
+		.enter().append("g")
+		.attr("class", "bar")
+		.attr("transform", function(d) { return "translate(" + (x(d.x) + margin.left) + "," + (y(d.y) + height - heightHist - 50) + ")"; });
+		
+	bar.append("rect")
+		.attr("x", 1)
+		.attr("width", (x(data[0].dx) - x(0)) - 3)
+		.attr("height", function(d) { return heightHist  - y(d.y);})
+		.attr("fill", "rgb(255, 255, 255)");
 }
 
-function hueTween() {
-  var hueError = hueTarget - hueActual;
-  if (Math.abs(hueError) < 1e-3) hueActual = hueTarget, hueTimer.stop();
-  else hueActual += hueError * hueAlpha;
+// event catcher for slder functionality	
+function mtr(h) {
+  mtrTarget = h;
+  mtrTimer.restart(mtrTweak);
+}
+
+// function allowing smooth slider functionality
+function mtrTweak() {
+  var mtrError = mtrTarget - mtrActual;
+  if (Math.abs(mtrError) < 1e-3) mtrActual = mtrTarget, mtrTimer.stop();
+  else mtrActual += mtrError * mtrAlpha;
  
-  handle.attr("cx", x(hueActual));
-  handleTxt.attr("x", x(hueActual) - 11);
-  handleTxt.text(function() { return d3.format("2.0f")(x(hueActual)/width*100); });  
+  handle.attr("cx", x(mtrActual));
+  handleTxt.attr("x", x(mtrActual) - 11);
+  handleArrowR.attr("transform", "translate(" + x(mtrActual + 4) + ", 0)")
+  handleArrowL.attr("transform", "translate(" + x(mtrActual - 4) + ", 0)")
+  handleTxt.text(function() { return d3.format("2.0f")(x(mtrActual)/width*100); });  
 }	
 	
 </script>
-
 </body>
-
 </html>
