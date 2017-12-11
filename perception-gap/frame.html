@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<!-- saved from url=(0041)https://bl.ocks.org/mbostock/raw/6499018/ -->
+<html>
+<head>
+
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+<script src="./js/d3.js.download"></script>
+<script src="./js/d3.v4.min.js.download"></script>
+<script src="./js/d3plus.js.download"></script>
+
+<style>
+ 
+.ticks {
+  font: 10px sans-serif;
+}
+
+.track,
+.track-inset,
+.track-overlay {
+  stroke-linecap: round;
+}
+
+.track {
+  stroke: #000;
+  stroke-opacity: 0.4;
+  stroke-width: 10px;
+}
+
+.track-inset {
+  stroke: #ddd;
+  stroke-width: 8px;
+}
+
+.track-overlay {
+  pointer-events: stroke;
+  stroke-width: 30px;
+  cursor: pointer;
+}
+
+.handle {
+  fill: #2378ae;
+  stroke: #000;
+  stroke-opacity: 0.5;
+  stroke-width: 1.00px;
+}
+
+.actual {
+  fill: #68b82a;
+  stroke: #000;
+  stroke-opacity: 0.5;
+  stroke-width: 1.00px;
+}
+
+.qBox {
+  fill: rgb(255,255,255);	
+  stroke: #000;
+  stroke-dasharray: 5,2;
+  stroke-width: 1;
+  shape-rendering: crispEdges;
+}
+
+.qTxt {
+    font: 15px sans-serif;	
+}
+
+.aBox {
+  fill: rgb(255,255,255);	
+  stroke: #000;
+  stroke-dasharray: 5,2;
+  stroke-width: 1;
+  shape-rendering: crispEdges;
+}
+
+.aTxt {
+    font: 15px sans-serif;	
+}
+
+.bShape {
+  fill: #68b82a;	
+}
+
+.bTxt {
+    font: 12px sans-serif;
+	pointer-events: none;
+}
+
+.ballTxt {
+    font: 12px sans-serif;
+	pointer-events: none;
+    paint-order: stroke;
+    stroke: #fff;
+    stroke-width: 1px;
+    stroke-linecap: butt;
+    stroke-linejoin: miter;
+}
+
+.bar rect {
+  shape-rendering: crispEdges;
+    stroke: #000;
+	stroke-opacity: 0.2;
+}
+
+.axis path, .axis line {
+  fill: none;
+  stroke: #000;
+  shape-rendering: crispEdges;
+</style>
+</head>
+<body>
+
+<script>
+
+var qData = {text: 'According to 2017 count, there are 3,605 homeless people across Metro Vancouver. What proportion of them are homeless for the first time?'};	
+var aData = {text: 'About half of the homeless who participated in the anonymous survey identified high rents and lack of income as the main barriers to housing. Addiction and mental illness were also factors, with 82 per cent of people dealing with at least one health condition.'};
+var aVal = 38;
+
+qBoxHeightOpt = (d3.round(qData.text.length/45)) * 22;
+aBoxHeightOpt = (d3.round(aData.text.length/45)) * 22;
+heightHist = 60;
+svgHeightOpt = qBoxHeightOpt + 150;
+
+d3.select("body").append("svg")
+	.attr("width", 400)
+	.attr("height", svgHeightOpt)
+	.style("background-color", '#fff')
+
+var svg = d3.select("svg"),
+    margin = {right: 25, left: 25},
+    width = +svg.attr("width") - margin.left - margin.right,
+    height = +svg.attr("height");
+
+svg.append("rect")
+	.attr("id", "qRect")
+	.attr("class", "qBox")
+	.attr("x", 25)
+	.attr("y", 25)
+	.attr("width", 350)
+	.attr("height", qBoxHeightOpt)
+	
+svg.append("text")
+	.attr("id", "qWrap")
+	.attr("class", "qTxt")
+	.attr("x", 32)	
+	
+d3.select('#qWrap').text(function() {return qData.text;})
+d3plus.textwrap().container("#qWrap").draw();	
+	
+var hueActual = 0,
+    hueTarget = 50,
+    hueAlpha = 0.2,
+    hueTimer = d3.timer(hueTween);
+
+var x = d3.scaleLinear()
+    .domain([0, 100])
+    .range([0, width])
+    .clamp(true);
+	
+var slider = svg.append("g")
+    .attr("class", "slider")
+    .attr("transform", "translate(" + margin.left + "," + (height - 50) + ")");	
+
+handleMode  = 'dynamic';
+	
+slider.append("line")
+    .attr("class", "track")
+    .attr("x1", x.range()[0]) 
+    .attr("x2", x.range()[1])
+  .select(function() { return this.parentNode.appendChild(this.cloneNode(true)); })
+    .attr("class", "track-inset")
+  .select(function() { return this.parentNode.appendChild(this.cloneNode(true)); })
+    .attr("class", "track-overlay")
+    .call(d3.drag()
+    .on("start.interrupt", function() { slider.interrupt(); })
+    .on("start drag", function() {  if (handleMode != 'static') { hue(x.invert(d3.event.x)); }}));
+	
+/*
+slider.insert("g", ".track-overlay")
+    .attr("class", "ticks")
+    .attr("transform", "translate(0," + (-20) + ")")
+  .selectAll("text")
+  .data(x.ticks(1))
+  .enter().append("text")
+    .attr("x", x)
+    .attr("text-anchor", "middle")
+    .text(function(d) { return d; });
+*/
+
+var handle = slider.insert("circle", ".track-overlay")
+    .attr("class", "handle")
+    .attr("r", 12);
+	
+var handleTxt = slider.append('text')
+    .attr("class", "ballTxt")
+	.style("fill", "#2378ae")
+	.attr("transform", "translate(5, 30)");
+	
+var bShape = svg.append("g");
+	
+var bRect = bShape.append("circle")
+	.attr("transform", "translate(" + (width + margin.right - 10) + ", " + (25 + qBoxHeightOpt + 20) + ")")
+    .attr("class", "actual")
+	.attr("r", 10)
+	.attr("opacity", 1);
+
+var bText = bShape.append("text")
+	.attr("class", "bTxt")
+	.attr("x", (width - 97))
+	.attr("y", (qBoxHeightOpt + 30 + 20))
+	.attr("opacity", 1)
+	.text("actual value | click");
+	
+bRect.on('click', function() {
+
+  bRect.remove();
+  bText.remove();
+  
+  handleMode = 'static';
+  
+  aValPos  = aVal * width/100;
+  
+  var actualBall = slider.insert("circle")
+    .attr("transform", "translate(" + aValPos + ", 0)")
+	.attr("class", "actual")
+	.attr("r", 12)
+  
+  slider.append("text")
+    .attr("class", "ballTxt")
+	.style("fill", "#68b82a")
+	.attr("transform", "translate(" + (aValPos - 7) + ", -25)")
+	.text(38)
+	
+  var svgA = d3.select("body").append("svg")
+    .attr("transform", "translate(-" + (width + 50 + 4) + ", " + (aBoxHeightOpt + 50) + ")")
+	.attr("width", 400)
+	.attr("height", (aBoxHeightOpt + 50))
+	.style("background-color", '#fff')
+	
+  svgA.append("rect")
+	.attr("id", "aRect")
+	.attr("class", "aBox")
+	.attr("x", 25)
+	.attr("y", 25)
+	.attr("width", 350)
+	.attr("height", aBoxHeightOpt);
+	
+  svgA.append("text")
+	.attr("id", "aWrap")
+	.attr("class", "aTxt")
+	.attr("x", 32);
+	
+  d3.select("#aWrap").text(function() {return aData.text;});
+  d3plus.textwrap().container("#aWrap").draw();		
+	
+  showHist(); 
+  
+  slider.moveToFront();
+	
+});		
+
+d3.selection.prototype.moveToFront = function() {
+  return this.each(function(){
+  this.parentNode.appendChild(this);
+  });
+};
+
+function showHist() {
+
+var values = d3.range(1000).map(d3.random.normal(5, 5));
+
+var max = d3.max(values);
+var min = d3.min(values);
+
+var x = d3.scale.linear()
+      .domain([min, max])
+      .range([0, width]);
+
+var data = d3.layout.histogram()
+    .bins(x.ticks(20))(values);
+
+var yMax = d3.max(data, function(d){return d.length});
+var yMin = d3.min(data, function(d){return d.length});
+
+var y = d3.scale.linear()
+    .domain([0, yMax])
+    .range([heightHist , 0]);
+
+var bar = svg.selectAll(".bar")
+    .data(data)
+    .enter().append("g")
+    .attr("class", "bar")
+    .attr("transform", function(d) { return "translate(" + (x(d.x) + margin.left) + "," + (y(d.y) + height - heightHist - 50) + ")"; });
+	
+bar.append("rect")
+    .attr("x", 1)
+    .attr("width", (x(data[0].dx) - x(0)) - 3)
+    .attr("height", function(d) { return heightHist  - y(d.y);})
+    .attr("fill", "rgb(255, 255, 255)");
+}
+	
+function hue(h) {
+  hueTarget = h;
+  hueTimer.restart(hueTween);
+}
+
+function hueTween() {
+  var hueError = hueTarget - hueActual;
+  if (Math.abs(hueError) < 1e-3) hueActual = hueTarget, hueTimer.stop();
+  else hueActual += hueError * hueAlpha;
+ 
+  handle.attr("cx", x(hueActual));
+  handleTxt.attr("x", x(hueActual) - 11);
+  handleTxt.text(function() { return d3.format("2.0f")(x(hueActual)/width*100); });  
+}	
+	
+</script>
+
+</body>
+
+</html>
