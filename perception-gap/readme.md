@@ -1,1 +1,1 @@
-Simple data-driven tool to improve audience engagement by uncovering a perception gap.
+Simple data-driven tool, developed for Web in D3.js, to improve audience engagement by uncovering the perception gap.
